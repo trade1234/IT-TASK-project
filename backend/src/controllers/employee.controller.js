@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 // ✅ GET all employees
 const getEmployees = async (req, res) => {
   try {
-    console.log('📋 Fetching employees for user: - employee.controller.js:7', req.user._id, 'Role:', req.user.role);
+    console.log('📋 Fetching employees for user:', req.user._id, 'Role:', req.user.role);
     
     let query = {};
     
@@ -20,14 +20,14 @@ const getEmployees = async (req, res) => {
       .select('fullName email role department status')
       .sort({ fullName: 1 });
     
-    console.log(`✅ Found ${employees.length} employees - employee.controller.js:23`);
+    console.log(`✅ Found ${employees.length} employees`);
     
     res.status(200).json({
       success: true,
       employees
     });
   } catch (error) {
-    console.error('Error fetching employees: - employee.controller.js:30', error);
+    console.error('Error fetching employees:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching employees'
@@ -35,10 +35,10 @@ const getEmployees = async (req, res) => {
   }
 };
 
-// ✅ CREATE new employee - ADD THIS FUNCTION
+// ✅ CREATE new employee
 const createEmployee = async (req, res) => {
   try {
-    console.log('📝 Creating new employee: - employee.controller.js:41', req.body);
+    console.log('📝 Creating new employee:', req.body);
     
     const { fullName, email, password, role, department } = req.body;
     
@@ -77,7 +77,7 @@ const createEmployee = async (req, res) => {
     const employeeResponse = employee.toObject();
     delete employeeResponse.password;
     
-    console.log('✅ Employee created: - employee.controller.js:80', employeeResponse.fullName);
+    console.log('✅ Employee created:', employeeResponse.fullName);
     
     res.status(201).json({
       success: true,
@@ -85,7 +85,7 @@ const createEmployee = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Create employee error: - employee.controller.js:88', error);
+    console.error('Create employee error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Error creating employee'
@@ -111,7 +111,7 @@ const getEmployeeById = async (req, res) => {
       employee
     });
   } catch (error) {
-    console.error('Error fetching employee: - employee.controller.js:114', error);
+    console.error('Error fetching employee:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching employee'
@@ -119,11 +119,12 @@ const getEmployeeById = async (req, res) => {
   }
 };
 
-// ✅ UPDATE employee
+// ✅ UPDATE employee (with password support)
 const updateEmployee = async (req, res) => {
   try {
-    const { fullName, email, department, role, status } = req.body;
+    const { fullName, email, department, role, status, password } = req.body;
     
+    // Check authorization
     if (req.user.role === 'employee' && req.user._id.toString() !== req.params.id) {
       return res.status(403).json({
         success: false,
@@ -131,9 +132,25 @@ const updateEmployee = async (req, res) => {
       });
     }
     
+    // ✅ Build update object
+    const updateData = { 
+      fullName, 
+      email, 
+      department, 
+      role, 
+      status 
+    };
+    
+    // ✅ If password is provided, hash it
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
+      console.log('🔑 Password updated for user:', email);
+    }
+    
     const employee = await User.findByIdAndUpdate(
       req.params.id,
-      { fullName, email, department, role, status },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
     
@@ -144,12 +161,14 @@ const updateEmployee = async (req, res) => {
       });
     }
     
+    console.log('✅ Employee updated:', employee.fullName);
+    
     res.status(200).json({
       success: true,
       employee
     });
   } catch (error) {
-    console.error('Error updating employee: - employee.controller.js:152', error);
+    console.error('Error updating employee:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating employee'
@@ -181,7 +200,7 @@ const deleteEmployee = async (req, res) => {
       message: 'Employee deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting employee: - employee.controller.js:184', error);
+    console.error('Error deleting employee:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting employee'
@@ -192,7 +211,7 @@ const deleteEmployee = async (req, res) => {
 module.exports = {
   getEmployees,
   getEmployeeById,
-  createEmployee,    // ✅ ADD THIS
+  createEmployee,
   updateEmployee,
   deleteEmployee
 };
