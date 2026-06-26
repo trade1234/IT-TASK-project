@@ -18,7 +18,8 @@ const Employees = () => {
   const fetchEmployees = async () => {
     try {
       const response = await api.get('/employees');
-      setEmployees(response.data.employees);
+      console.log('📋 Employees response:', response.data);
+      setEmployees(response.data.employees || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     } finally {
@@ -27,12 +28,13 @@ const Employees = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await api.delete(`/employees/${id}`);
         fetchEmployees();
+        alert('User deleted successfully');
       } catch (error) {
-        alert('Error deleting employee');
+        alert(error.response?.data?.message || 'Error deleting user');
       }
     }
   };
@@ -137,14 +139,19 @@ const Employees = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-        <button
-          onClick={() => navigate('/employees/create')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <FiUserPlus className="w-4 h-4" />
-          Add Employee
-        </button>
+        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+        <div className="flex gap-2">
+          <span className="text-sm text-gray-500 flex items-center">
+            Total: {employees.length} users
+          </span>
+          <button
+            onClick={() => navigate('/employees/create')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <FiUserPlus className="w-4 h-4" />
+            Add User
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -160,44 +167,65 @@ const Employees = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {employees.map((employee) => (
-              <tr key={employee._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{employee.fullName}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{employee.role}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {employee.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button
-                    onClick={() => viewEmployeeKPI(employee)}
-                    className="text-green-600 hover:text-green-900 mr-2"
-                    title="View KPI"
-                  >
-                    <FiBarChart2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => navigate(`/employees/edit/${employee._id}`)}
-                    className="text-blue-600 hover:text-blue-900 mr-2"
-                    title="Edit"
-                  >
-                    <FiEdit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(employee._id)}
-                    className="text-red-600 hover:text-red-900"
-                    title="Delete"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
+            {employees.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                  No users found
                 </td>
               </tr>
-            ))}
+            ) : (
+              employees.map((employee) => (
+                <tr key={employee._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {employee.fullName}
+                    {employee.role === 'admin' && (
+                      <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                        Admin
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {employee.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {employee.department || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                    {employee.role}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {employee.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <button
+                      onClick={() => viewEmployeeKPI(employee)}
+                      className="text-green-600 hover:text-green-900 mr-2"
+                      title="View KPI"
+                    >
+                      <FiBarChart2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => navigate(`/employees/edit/${employee._id}`)}
+                      className="text-blue-600 hover:text-blue-900 mr-2"
+                      title="Edit"
+                    >
+                      <FiEdit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(employee._id)}
+                      className="text-red-600 hover:text-red-900"
+                      title="Delete"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -208,7 +236,7 @@ const Employees = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Employee Performance KPI</h2>
+                <h2 className="text-xl font-bold text-gray-900">User Performance KPI</h2>
                 <p className="text-sm text-gray-500">{selectedEmployee.fullName} • {selectedEmployee.email}</p>
               </div>
               <button

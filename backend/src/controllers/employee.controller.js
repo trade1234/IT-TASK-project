@@ -1,36 +1,27 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
-// ✅ GET all employees
+// ✅ GET ALL users (including admins) - KEEP THIS ONE
 const getEmployees = async (req, res) => {
   try {
-    console.log('📋 Fetching employees for user:', req.user._id, 'Role:', req.user.role);
+    console.log('📋 Fetching all users for admin:', req.user._id);
     
-    let query = {};
-    
-    if (req.user.role === 'employee') {
-      query = { role: 'admin' };
-    } else if (req.user.role === 'admin') {
-      query = { role: 'employee' };
-    } else {
-      query = { _id: { $ne: req.user._id } };
-    }
-    
-    const employees = await User.find(query)
+    // ✅ Show ALL users - no role filter
+    const employees = await User.find()
       .select('fullName email role department status')
       .sort({ fullName: 1 });
     
-    console.log(`✅ Found ${employees.length} employees`);
+    console.log(`✅ Found ${employees.length} users`);
     
     res.status(200).json({
       success: true,
       employees
     });
   } catch (error) {
-    console.error('Error fetching employees:', error);
+    console.error('Error fetching users:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching employees'
+      message: 'Error fetching users'
     });
   }
 };
@@ -42,7 +33,6 @@ const createEmployee = async (req, res) => {
     
     const { fullName, email, password, role, department } = req.body;
     
-    // Validate required fields
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -50,7 +40,6 @@ const createEmployee = async (req, res) => {
       });
     }
     
-    // Check if employee already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -59,11 +48,9 @@ const createEmployee = async (req, res) => {
       });
     }
     
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Create employee
     const employee = await User.create({
       fullName,
       email,
@@ -73,7 +60,6 @@ const createEmployee = async (req, res) => {
       status: 'active'
     });
     
-    // Remove password from response
     const employeeResponse = employee.toObject();
     delete employeeResponse.password;
     
@@ -83,7 +69,6 @@ const createEmployee = async (req, res) => {
       success: true,
       employee: employeeResponse
     });
-    
   } catch (error) {
     console.error('Create employee error:', error);
     res.status(500).json({
@@ -124,7 +109,6 @@ const updateEmployee = async (req, res) => {
   try {
     const { fullName, email, department, role, status, password } = req.body;
     
-    // Check authorization
     if (req.user.role === 'employee' && req.user._id.toString() !== req.params.id) {
       return res.status(403).json({
         success: false,
@@ -132,7 +116,6 @@ const updateEmployee = async (req, res) => {
       });
     }
     
-    // ✅ Build update object
     const updateData = { 
       fullName, 
       email, 
@@ -141,7 +124,6 @@ const updateEmployee = async (req, res) => {
       status 
     };
     
-    // ✅ If password is provided, hash it
     if (password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(password, salt);
